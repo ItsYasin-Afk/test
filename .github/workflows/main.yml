@@ -1,8 +1,9 @@
+
 name: Build Android Debug APK
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: ["main", "master"]
   pull_request:
   workflow_dispatch:
 
@@ -16,41 +17,87 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
+
     container:
       image: barichello/godot-ci:4.4.1
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install matching Godot export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          GODOT_VERSION="4.4.1"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+
+          mkdir -p "$TEMPLATE_DIR"
+
+          curl --fail --location --retry 3 --retry-delay 2 \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" \
+            --output /tmp/godot_export_templates.tpz
+
+          unzip -q /tmp/godot_export_templates.tpz -d /tmp/godot_export_templates
+
+          test -f /tmp/godot_export_templates/templates/android_debug.apk
+
+          cp -a /tmp/godot_export_templates/templates/. "$TEMPLATE_DIR/"
+
+          test -f "$TEMPLATE_DIR/android_debug.apk"
+
+          echo "Godot export templates installed."
 
       - name: Configure Android SDK and debug signing
         shell: bash
         run: |
           set -euo pipefail
-          export ANDROID_HOME="${ANDROID_HOME:-/usr/lib/android-sdk}"
-          export ANDROID_SDK_ROOT="$ANDROID_HOME"
-          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
-          echo "$ANDROID_HOME/cmdline-tools/cmdline-tools/bin" >> "$GITHUB_PATH"
-          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-          test -d "$ANDROID_HOME/platforms"
-          mkdir -p build
-          if [ ! -f /root/debug.keystore ]; then
-            keytool -genkeypair -noprompt -v \
-              -keystore /root/debug.keystore \
-              -storepass android -keypass android \
-              -alias androiddebugkey -keyalg RSA -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=Android Debug,O=Android,C=US"
+
+          SDK_PATH="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/lib/android-sdk}}"
+
+          if [ ! -d "$SDK_PATH/platforms" ]; then
+            for candidate in /opt/android-sdk /usr/local/android-sdk /usr/lib/android-sdk; do
+              if [ -d "$candidate/platforms" ]; then
+                SDK_PATH="$candidate"
+                break
+              fi
+            done
           fi
-          cp /root/debug.keystore "$GITHUB_WORKSPACE/debug.keystore"
+
+          test -d "$SDK_PATH/platforms"
+
+          echo "ANDROID_HOME=$SDK_PATH" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_PATH" >> "$GITHUB_ENV"
+          echo "$SDK_PATH/platform-tools" >> "$GITHUB_PATH"
+
+          if command -v sdkmanager >/dev/null 2>&1; then
+            yes | sdkmanager --licenses >/dev/null || true
+            sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          fi
+
+          mkdir -p build
+
+          keytool -genkeypair -noprompt -v \
+            -keystore "$GITHUB_WORKSPACE/debug.keystore" \
+            -storepass android \
+            -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+
           mkdir -p "$HOME/.config/godot"
+
           cat > "$HOME/.config/godot/editor_settings-4.4.tres" <<EOF
           [gd_resource type="EditorSettings" format=3]
+
           [resource]
           export/android/java_sdk_path = "/usr/lib/jvm/java-17-openjdk-amd64"
-          export/android/android_sdk_path = "$ANDROID_HOME"
-          export/android/debug_keystore = "/root/debug.keystore"
+          export/android/android_sdk_path = "$SDK_PATH"
+          export/android/debug_keystore = "$GITHUB_WORKSPACE/debug.keystore"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           EOF
@@ -59,15 +106,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          godot --headless --editor --path . --quit --verbose
+          godot --headless --editor --path . --quit
 
       - name: Export signed debug APK
         shell: bash
         run: |
           set -euo pipefail
+
           mkdir -p build
-          timeout 12m godot --headless --path . --verbose \
+
+          timeout 15m godot --headless --path . \
             --export-debug "Android" build/ZombieSurvival-debug.apk
+
           test -s build/ZombieSurvival-debug.apk
 
       - name: Upload APK artifact
