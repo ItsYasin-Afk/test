@@ -1,0 +1,31 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  export-android:
+    name: Export Android APK
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.4.1
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Android Export Directory
+        run: |
+          mkdir -v -p build
+
+      - name: Godot Android Export
+        run: |
+          godot --headless --verbose --path . --export-debug "Android" build/zombie_arena.apk
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zombie_arena_apk
+          path: build/zombie_arena.apk
