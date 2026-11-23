@@ -1,14 +1,21 @@
-# Zombie Nightfall
+# Zombie Survival
 
-A standalone, offline HTML5 Canvas2D top-down zombie survival game. The complete game is `index.html`; it has no runtime asset, font, library, or network dependencies.
+یک بازی اکشن بقا برای مرورگر و اندروید (با Capacitor). تمام گرافیک، صداها و گیم‌پلی به‌صورت محلی و بدون موتور یا دارایی خارجی تولید می‌شوند.
 
-## Play locally
-Open `index.html` in a modern browser. Desktop: WASD/arrows move, mouse aim and hold left button to fire, Space dash, R reload, 1–3 switch weapon, P/Escape pause. Touch: left stick moves; touch/drag on the right aims and fires; on-screen buttons reload, dash, switch weapon, and pause. Audio starts after interaction and can be toggled.
+## اجرا در مرورگر
+از ریشهٔ پروژه اجرا کنید: `python -m http.server 8000` و سپس `http://localhost:8000` را باز کنید. برای ES modules از `file://` استفاده نکنید.
 
-## Android debug APK with GitHub Actions
-This repository ZIP has project files at its root. Push the extracted contents to the root of a GitHub repository, then open **Actions → Build Android debug APK → Run workflow** (or push to `main`/`master`). The workflow uses Node 24 and Java 21, installs Android API 36/build-tools 36.0.0, copies the offline game to `www/index.html`, adds/syncs Capacitor Android, and builds the debug APK. Download the `zombie-nightfall-debug-apk` artifact from the completed workflow run.
+## کنترل‌ها
+رومیزی: WASD/کلیدهای جهت برای حرکت، نگه‌داشتن دکمهٔ چپ ماوس برای تیراندازی و جهت‌گیری ماوس برای هدف‌گیری؛ R بارگذاری، Space جاخالی، 1 تا 7 انتخاب سلاح، Escape/P مکث. موبایل: جوی‌استیک چپ حرکت، راست هدف‌گیری/شلیک؛ دکمه‌های بارگذاری/تعویض/جاخالی. چرخش دستگاه و بریدگی نمایشگر با safe-area مدیریت می‌شود.
 
-APK output is checked at `android/app/build/outputs/apk/debug/app-debug.apk` before upload. This repository contains no APK or signing keystore: CI produces an unsigned-for-release, debug-signed APK suitable for testing, not a Play Store release.
+## ساخت وب و APK آزمایشی
+Node.js 22 یا جدیدتر، Java 21، Android SDK و ابزارهای Android لازم است. نصب بسته‌ها و ساخت وب: `npm install --no-audit --no-fund` سپس `npm run build:web`. برای افزودن پروژه بومی: `npx cap add android` (فقط بار اول)، `npx cap sync android` و سپس `cd android && ./gradlew assembleDebug`. خروجی محلی: `android/app/build/outputs/apk/debug/app-debug.apk`. این debug APK امضای انتشار ندارد.
 
-## Contents
-`index.html`, `package.json`, `capacitor.config.json`, `README.md`, `.gitignore`, and `.github/workflows/build-android.yml` are all at the repository root/tree as listed.
+## بارگیری APK از GitHub
+فایل‌های این پوشه را در ریشهٔ یک مخزن GitHub بارگذاری و push کنید. در Actions، گردش کار **Android debug APK** را اجرا/منتظر بمانید؛ از اجرای موفق، artifact با نام **Zombie-Survival-APK** را دانلود کنید. این مخزن APK از پیش‌ساخته‌شده ندارد.
+
+## PWA، ذخیره و تست
+Service worker فقط در secure context یعنی HTTPS یا localhost ثبت می‌شود و برای پروتکل اپ بومی ثبت نمی‌شود؛ بارگیری آفلاین پس از بازدید آنلاین نخست ممکن است. تنظیمات و آمار با اعتبارسنجی در localStorage نسخه‌دار ذخیره می‌شود. `npm test` و `npm run build:web` برای بررسی‌های محلی.
+
+## پیاده‌سازی
+Canvas2D با حلقهٔ RAF و delta محدود؛ منطق بازی، موج، برخورد، صدا، ذخیره‌سازی و رندر در ماژول‌های مستقل. ارتقای سطح بازی را متوقف می‌کند تا انتخاب واقعی ارائه شود. مودها Endless، ده‌موجی و Boss Rush قابل بازی‌اند. محدودیت: اجرای لمسی واقعی، مرورگرهای دستگاه، آفلاین کامل و ساخت Android باید روی سخت‌افزار/محیط مقصد جداگانه بررسی شود؛ این بسته ادعای APK ساخته‌شده ندارد.
