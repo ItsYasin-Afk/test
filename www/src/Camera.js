@@ -1,0 +1,1 @@
+export default class Camera{constructor(){this.x=0;this.y=0;this.shake=0}follow(p,w,h,dt){this.x+=(p.x-w/2-this.x)*Math.min(1,dt*6);this.y+=(p.y-h/2-this.y)*Math.min(1,dt*6);this.shake=Math.max(0,this.shake-dt)}kick(n=5){this.shake=Math.min(14,this.shake+n)}offset(){return this.shake?[(Math.random()-.5)*this.shake,(Math.random()-.5)*this.shake]:[0,0]}}

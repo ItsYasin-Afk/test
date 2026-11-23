@@ -1,0 +1,1 @@
+export default class GameState{constructor(){this.mode='idle';this.paused=false;this.time=0}start(mode){this.mode=mode;this.paused=false;this.time=0}pause(v=true){if(this.mode==='playing'||this.mode==='upgrade')this.paused=v}get active(){return this.mode==='playing'&&!this.paused}}

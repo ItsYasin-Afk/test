@@ -1,0 +1,4 @@
+import assert from 'node:assert/strict';import WaveManager from '../src/WaveManager.js';import WeaponManager from '../src/WeaponManager.js';import {loadSave} from '../src/SaveManager.js';
+globalThis.localStorage={getItem:()=>'{broken',setItem(){},removeItem(){}};assert.equal(loadSave().version,1);
+let w=new WaveManager('standard');w.start();let n=0;while(w.remaining){w.update(1,0,()=>n++);}assert.equal(n,w.quota);w.update(3,0,()=>{});assert.equal(w.wave,2);let b=new WaveManager('boss');b.start();assert.equal(b.boss,true);
+let wm=new WeaponManager();assert.equal(wm.fire().name,'Pistol');assert.equal(wm.gun.ammo,11);for(let i=0;i<20;i++){wm.update(1);wm.fire()}assert.ok(wm.gun.ammo<12);wm.startReload();wm.update(2);assert.equal(wm.gun.ammo,12);assert.equal(wm.select(5),false);assert.equal(wm.unlock(5),true);assert.equal(wm.select(5),true);assert.equal(wm.gun.name,'Sniper');console.log('smoke tests passed');

@@ -1,0 +1,1 @@
+export default class Projectile{constructor(x,y,vx,vy,damage,life=1.3){Object.assign(this,{x,y,vx,vy,damage,life,r:4,dead:false})}update(dt){this.x+=this.vx*dt;this.y+=this.vy*dt;this.life-=dt;if(this.life<=0)this.dead=true}}
