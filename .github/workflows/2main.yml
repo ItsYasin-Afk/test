@@ -1,0 +1,59 @@
+name: Android debug APK
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Support both a repository whose root is the project and a repository
+      # containing the project in a zombie-survival/ subdirectory.
+      - name: Locate project root
+        id: project
+        shell: bash
+        run: |
+          if [ -f package.json ]; then
+            dir=.
+          elif [ -f zombie-survival/package.json ]; then
+            dir=zombie-survival
+          else
+            echo "Could not find package.json at repository root or zombie-survival/package.json" >&2
+            exit 1
+          fi
+          if ! node -e "const p=require('./' + process.argv[1] + '/package.json'); if (!p.scripts || !p.scripts['build:web']) process.exit(1)" "$dir"; then
+            echo "Selected project has no build:web npm script: $dir" >&2
+            exit 1
+          fi
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+        working-directory: ${{ steps.project.outputs.dir }}
+      - name: Build web assets
+        run: npm run build:web
+        working-directory: ${{ steps.project.outputs.dir }}
+      - name: Add Android platform if needed
+        run: if [ ! -d android ]; then npx cap add android; fi
+        working-directory: ${{ steps.project.outputs.dir }}
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+        working-directory: ${{ steps.project.outputs.dir }}
+      - name: Build debug APK
+        run: chmod +x android/gradlew && cd android && ./gradlew --no-daemon assembleDebug
+        working-directory: ${{ steps.project.outputs.dir }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Zombie-Survival-APK
+          path: ${{ steps.project.outputs.dir }}/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
